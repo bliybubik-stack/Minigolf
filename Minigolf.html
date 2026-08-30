@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MiniGolf</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101010;color:#eee;font-family:Arial,Helvetica,sans-serif;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+button,input,select{font:inherit}
+#hud{position:fixed;z-index:20;top:12px;left:12px;display:flex;align-items:center;gap:6px;pointer-events:none}
+.hbox{height:40px;background:#181818ed;border:1px solid #353535;border-radius:11px;display:flex;align-items:center;box-shadow:0 8px 28px #0006;backdrop-filter:blur(12px)}
+#brand{padding:0 12px;gap:7px;font-size:11px;font-weight:800;letter-spacing:.8px}
+#brand svg{width:15px}
+#stats{padding:0 4px;gap:2px}
+.stat{height:31px;min-width:76px;padding:0 8px;display:flex;align-items:center;gap:6px;border-radius:8px}
+.stat svg{width:14px;color:#929292}
+.statText{display:flex;flex-direction:column;gap:2px}
+.statLabel{font-size:7px;color:#6f6f6f;text-transform:uppercase;letter-spacing:.7px}
+.statValue{font-size:11px;font-weight:700}
+#actions{padding:0 4px;gap:1px;pointer-events:auto}
+.iconBtn{width:32px;height:32px;border:0;background:transparent;color:#aaa;border-radius:8px;display:grid;place-items:center;cursor:pointer}
+.iconBtn:hover{background:#292929;color:#fff}
+.iconBtn svg{width:15px}
+#minimap{position:fixed;z-index:20;top:12px;right:12px;width:176px;height:122px;background:#171717e8;border:1px solid #383838;border-radius:11px;padding:6px;box-shadow:0 8px 30px #0006;backdrop-filter:blur(12px)}
+#mapCanvas{width:100%;height:100%;display:block;border-radius:7px}
+#mapLabel{position:absolute;top:7px;left:9px;font-size:7px;color:#777;letter-spacing:1px}
+#settings{position:fixed;z-index:60;top:60px;left:12px;width:300px;max-height:calc(100vh - 72px);overflow:hidden;background:#151515f7;border:1px solid #3b3b3b;border-radius:13px;box-shadow:0 24px 80px #0009;backdrop-filter:blur(18px);display:none}
+#settingsHead{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 10px;border-bottom:1px solid #2d2d2d}
+#settingsTitle{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800}
+#settingsTitle svg{width:15px;color:#999}
+#closeSettings{width:27px;height:27px;border:0;background:#242424;color:#999;border-radius:7px;display:grid;place-items:center;cursor:pointer}
+#tabs{display:flex;padding:7px;border-bottom:1px solid #2d2d2d;gap:4px}
+.tab{flex:1;height:30px;border:1px solid transparent;background:transparent;color:#777;border-radius:7px;font-size:9px;font-weight:700;cursor:pointer}
+.tab.active{background:#242424;color:#eee;border-color:#3a3a3a}
+#tabContent{max-height:calc(100vh - 188px);overflow:auto;padding:11px 13px}
+.tabPane{display:none}
+.tabPane.active{display:block}
+.row{padding:9px 0;border-bottom:1px solid #252525}
+.row:last-child{border-bottom:0}
+.rowTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rowName{font-size:10px;color:#aaa}
+.rowValue{font-size:9px;color:#eee;font-weight:700}
+.rowDesc{margin-top:4px;font-size:8px;color:#666;line-height:1.35}
+.range{width:100%;margin-top:7px;height:3px;appearance:none;background:#333;border-radius:99px;outline:none}
+.range::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:#eee;border:2px solid #111}
+.range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#eee;border:2px solid #111}
+.select,.smallInput{margin-top:7px;width:100%;height:30px;padding:0 8px;border-radius:7px;background:#202020;color:#eee;border:1px solid #373737;font-size:9px;outline:none}
+.toggle{position:relative;width:35px;height:20px;border-radius:20px;background:#292929;border:1px solid #454545;cursor:pointer}
+.toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#777;transition:.15s}
+.toggle.on{background:#444}
+.toggle.on i{left:17px;background:#eee}
+#shopGrid{display:grid;gap:7px}
+.shopItem{padding:10px;border:1px solid #2d2d2d;background:#1a1a1a;border-radius:9px}
+.shopItemTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.shopInfo{display:flex;align-items:center;gap:7px}
+.shopInfo svg{width:14px;color:#999}
+.shopName{font-size:10px;font-weight:700}
+.shopPrice{font-size:9px;color:#aaa}
+.shopDesc{font-size:8px;color:#666;margin-top:5px}
+.buyBtn{margin-top:8px;width:100%;height:28px;border:1px solid #444;background:#252525;color:#eee;border-radius:7px;font-size:9px;font-weight:800;cursor:pointer}
+.buyBtn:disabled{opacity:.45;cursor:default}
+#credits{padding:10px 13px;border-top:1px solid #2d2d2d;font-size:8px;color:#666}
+#credits b{color:#999}
+#power{position:fixed;z-index:20;left:50%;bottom:17px;transform:translateX(-50%);width:190px;height:6px;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:20px;overflow:hidden;opacity:0}
+#powerFill{height:100%;width:0;background:#eee;transform-origin:left center}
+#powerLabel{position:fixed;z-index:20;left:50%;bottom:27px;transform:translateX(-50%);font-size:7px;color:#777;letter-spacing:1px;opacity:0;pointer-events:none}
+#hint{position:fixed;z-index:5;bottom:13px;left:50%;transform:translateX(-50%);padding:6px 9px;background:#151515cc;border:1px solid #292929;border-radius:7px;color:#666;font-size:8px}
+#finish{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;pointer-events:none}
+#finishBox{min-width:210px;padding:22px 28px;text-align:center;background:#141414f2;border:1px solid #444;border-radius:14px;box-shadow:0 20px 80px #0009}
+#finishIcon{width:24px;margin:0 auto 8px}
+#finishTitle{margin:0;font-size:19px}
+#finishSub{margin:7px 0 0;color:#888;font-size:10px}
+#coinFloat{position:fixed;z-index:35;display:none;pointer-events:none;font-size:11px;font-weight:800;color:#ddd}
+@media(max-width:650px){
+#hud{top:8px;left:8px;right:8px;gap:4px}
+#brand{display:none}
+#stats{flex:1}
+.stat{min-width:0;flex:1;padding:0 6px}
+#minimap{top:58px;right:8px;width:145px;height:101px}
+#settings{left:8px;top:56px;width:270px}
+#hint{bottom:9px;font-size:7px}
+}
+
+/* --- V2 polish / account / skins --- */
+:root{--panel:#151515ee;--panel2:#1b1b1b;--line:#343434;--muted:#777;--text:#eee}
+button{transition:transform .15s ease,background .15s ease,border-color .15s ease}
+button:not(:disabled):active{transform:scale(.96)}
+#authOverlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#292929 0,#111 38%,#0b0b0b 100%);overflow:hidden}
+#authGlow{position:absolute;width:420px;height:420px;border-radius:50%;background:#fff;filter:blur(110px);opacity:.045}
+.authCard{position:relative;width:min(390px,calc(100vw - 28px));padding:26px;border:1px solid #3c3c3c;border-radius:20px;background:#141414eF;box-shadow:0 30px 120px #000b;backdrop-filter:blur(22px)}
+.authBrand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:1.8px;font-size:16px}
+.authBrandIcon{width:38px;height:38px;display:grid;place-items:center;border:1px solid #444;border-radius:12px;background:#202020}
+.authBrandIcon svg{width:19px}
+.authSub{color:#777;font-size:9px;margin:10px 0 22px;line-height:1.5}
+.authTabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border:1px solid #2e2e2e;background:#0e0e0e;border-radius:10px;margin-bottom:16px}
+.authTab{height:32px;border:0;border-radius:7px;background:transparent;color:#777;font-size:9px;font-weight:800;cursor:pointer}
+.authTab.active{background:#292929;color:#eee}
+.authField{margin-bottom:10px}
+.authField label{display:block;color:#888;font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.authField input{width:100%;height:40px;padding:0 12px;border:1px solid #363636;border-radius:9px;background:#1d1d1d;color:#eee;outline:0;font-size:11px}
+.authField input:focus{border-color:#666;box-shadow:0 0 0 3px #fff08}
+#authSubmit{width:100%;height:42px;border:1px solid #555;border-radius:10px;background:#eee;color:#111;font-size:10px;font-weight:900;cursor:pointer;margin-top:5px}
+#authError{min-height:16px;color:#aaa;font-size:8px;text-align:center;margin-top:9px}
+.authNote{color:#555;font-size:7px;text-align:center;margin-top:12px;line-height:1.5}
+#profileBtn{position:fixed;z-index:25;right:198px;top:12px;height:40px;padding:0 10px;border:1px solid #353535;border-radius:11px;background:#181818ed;color:#ddd;display:flex;align-items:center;gap:7px;box-shadow:0 8px 28px #0006;backdrop-filter:blur(12px);cursor:pointer;font-size:9px;font-weight:800}
+#profileDot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#2b2b2b;border:1px solid #4a4a4a;font-size:8px}
+#profilePanel{position:fixed;z-index:70;right:12px;top:60px;width:255px;display:none;padding:13px;border:1px solid #3b3b3b;border-radius:13px;background:#151515f7;box-shadow:0 24px 80px #0009;backdrop-filter:blur(18px)}
+.profileTop{display:flex;align-items:center;gap:9px;padding-bottom:11px;border-bottom:1px solid #2d2d2d}
+.profileAvatar{width:35px;height:35px;border-radius:10px;display:grid;place-items:center;background:#242424;border:1px solid #444;font-size:10px;font-weight:900}
+.profileName{font-size:11px;font-weight:800}.profileMeta{font-size:7px;color:#666;margin-top:3px}
+.profileStat{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #252525;font-size:8px;color:#888}
+.profileStat b{color:#eee}
+.profileBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.profileBtns button{height:30px;border:1px solid #3a3a3a;background:#222;color:#ddd;border-radius:7px;font-size:8px;font-weight:800;cursor:pointer}
+.profileBtns button:last-child{background:#171717;color:#999}
+#skinPane{display:none}
+.skinGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.skinCard{padding:9px;border:1px solid #2d2d2d;background:#1a1a1a;border-radius:9px;cursor:pointer}
+.skinCard.active{border-color:#777;box-shadow:inset 0 0 0 1px #777}
+.skinPreview{height:45px;border-radius:7px;background:#222;display:grid;place-items:center;margin-bottom:7px}
+.skinBall{width:22px;height:22px;border-radius:50%;border:2px solid #aaa;box-shadow:0 5px 12px #0008}
+.skinName{font-size:9px;font-weight:800}.skinPrice{font-size:8px;color:#777;margin-top:3px}
+.skinAction{margin-top:7px;width:100%;height:25px;border:1px solid #3a3a3a;background:#252525;color:#eee;border-radius:6px;font-size:8px;font-weight:800}
+#toast{position:fixed;z-index:150;left:50%;bottom:50px;transform:translateX(-50%) translateY(15px);opacity:0;padding:8px 12px;border:1px solid #444;border-radius:8px;background:#171717ed;color:#ddd;font-size:8px;box-shadow:0 12px 35px #0008;pointer-events:none}
+#combo{position:fixed;z-index:25;left:50%;top:78px;transform:translateX(-50%);font-size:9px;font-weight:900;letter-spacing:1px;color:#aaa;opacity:0;pointer-events:none}
+#settings{max-height:calc(100vh - 72px)}
+@media(max-width:650px){
+ #profileBtn{right:8px;top:113px}
+ #profilePanel{right:8px;top:160px}
+ #minimap{top:58px}
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<!-- Account UI -->
+<div id="authOverlay">
+  <div id="authGlow"></div>
+  <div class="authCard">
+    <div class="authBrand"><div class="authBrandIcon"><i data-lucide="golf"></i></div>MINIGOLF</div>
+    <div class="authSub">Your local player profile keeps your coins, skins and shop unlocks together on this browser.</div>
+    <div class="authTabs">
+      <button class="authTab active" data-auth="login">LOGIN</button>
+      <button class="authTab" data-auth="signup">SIGN UP</button>
+    </div>
+    <form id="authForm">
+      <div class="authField"><label>Username</label><input id="authUser" autocomplete="username" maxlength="20" required></div>
+      <div class="authField"><label>Password</label><input id="authPass" type="password" autocomplete="current-password" minlength="4" maxlength="64" required></div>
+      <button id="authSubmit" type="submit">LOGIN</button>
+    </form>
+    <div id="authError"></div>
+    <div class="authNote">Local browser profile only. This is not a server-backed account system.</div>
+  </div>
+</div>
+
+<button id="profileBtn"><span id="profileDot">?</span><span id="profileLabel">PLAYER</span></button>
+<div id="profilePanel">
+  <div class="profileTop">
+    <div class="profileAvatar" id="profileAvatar">?</div>
+    <div><div class="profileName" id="profileName">Player</div><div class="profileMeta">LOCAL PROFILE</div></div>
+  </div>
+  <div class="profileStat"><span>Coins</span><b id="profileCoins">0</b></div>
+  <div class="profileStat"><span>Level</span><b id="profileLevel">1</b></div>
+  <div class="profileStat"><span>Owned skins</span><b id="profileSkins">1</b></div>
+  <div class="profileBtns"><button id="closeProfile">CLOSE</button><button id="logoutBtn">LOG OUT</button></div>
+</div>
+<div id="toast"></div>
+<div id="combo"></div>
+
+
+<div id="hud">
+<div class="hbox" id="brand"><i data-lucide="flag"></i><span>MINIGOLF</span></div>
+<div class="hbox" id="stats">
+<div class="stat"><i data-lucide="golf"></i><div class="statText"><span class="statLabel" data-t="strokes">Strokes</span><span class="statValue" id="strokesValue">0</span></div></div>
+<div class="stat"><i data-lucide="layers"></i><div class="statText"><span class="statLabel" data-t="level">Level</span><span class="statValue" id="levelValue">1</span></div></div>
+<div class="stat"><i data-lucide="coins"></i><div class="statText"><span class="statLabel" data-t="coins">Coins</span><span class="statValue" id="coinsValue">0</span></div></div>
+<div class="stat"><i data-lucide="route"></i><div class="statText"><span class="statLabel" data-t="course">Course</span><span class="statValue" id="courseValue">L</span></div></div>
+</div>
+<div class="hbox" id="actions">
+<button class="iconBtn" id="newCourse" title="Shuffle"><i data-lucide="shuffle"></i></button>
+<button class="iconBtn" id="reset" title="Restart"><i data-lucide="rotate-ccw"></i></button>
+<button class="iconBtn" id="settingsBtn" title="Settings"><i data-lucide="sliders-horizontal"></i></button>
+</div>
+</div>
+
+<div id="minimap"><canvas id="mapCanvas"></canvas><div id="mapLabel">COURSE</div></div>
+
+<div id="settings">
+<div id="settingsHead">
+<div id="settingsTitle"><i data-lucide="settings-2"></i><span data-t="settings">Settings</span></div>
+<button id="closeSettings"><i data-lucide="x"></i></button>
+</div>
+<div id="tabs">
+<button class="tab active" data-tab="general" data-t="general">GENERAL</button>
+<button class="tab" data-tab="map" data-t="map">MAP</button>
+<button class="tab" data-tab="shop" data-t="shop">SHOP</button>
+<button class="tab" data-tab="skins" data-t="skins">SKINS</button>
+
+</div>
+
+<div id="tabContent">
+
+<div class="tabPane active" id="generalPane">
+
+<div class="row">
+<div class="rowTop"><span class="rowName" data-t="language">Language</span></div>
+<select class="select" id="language">
+<option value="en">English</option>
+<option value="de">Deutsch</option>
+<option value="ru">Русский</option>
+<option value="uk">Українська</option>
+<option value="es">Español</option>
+<option value="fr">Français</option>
+<option value="pl">Polski</option>
+</select>
+</div>
+
+<div class="row"><div class="rowTop"><span class="rowName" data-t="camera">Soft Camera</span><div class="toggle on" data-setting="softCamera"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="holeArrow">Hole Direction Arrow</span><div class="toggle on" data-setting="holeArrow"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="minimap">Mini Map</span><div class="toggle on" data-setting="minimap"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="particles">Hole Celebration</span><div class="toggle on" data-setting="particles"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="hint">Control Hint</span><div class="toggle on" data-setting="hint"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="uiScale">UI Scale</span><span class="rowValue" id="uiScaleValue">100%</span></div><input class="range" id="uiScale" type="range" min="80" max="120" value="100"></div>
+
+</div>
+
+<div class="tabPane" id="mapPane">
+
+<div class="row"><div class="rowTop"><span class="rowName" data-t="mapSize">Map Size</span><span class="rowValue" id="sizeOut">100%</span></div><input class="range" id="size" type="range" min="1" max="200" value="100"></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="complexity">Complexity</span><span class="rowValue" id="complexityOut">50%</span></div><input class="range" id="complexity" type="range" min="1" max="200" value="50"></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="turns">Turns</span><span class="rowValue" id="turnsOut">50%</span></div><input class="range" id="turns" type="range" min="1" max="200" value="50"></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="obstacles">Obstacles</span><span class="rowValue" id="obstaclesOut">50%</span></div><input class="range" id="obstacles" type="range" min="1" max="200" value="50"></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="length">Course Length</span><span class="rowValue" id="lengthOut">100%</span></div><input class="range" id="length" type="range" min="1" max="200" value="100"></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="difficulty">Auto Difficulty</span><div class="toggle on" data-setting="autoDifficulty"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="safe">Safe Obstacles</span><div class="toggle on" data-setting="safeObstacles"><i></i></div></div></div>
+
+</div>
+
+<div class="tabPane" id="shopPane">
+
+<div class="row">
+<div class="rowTop"><span class="rowName" data-t="balance">Coin Balance</span><span class="rowValue" id="shopCoins">0</span></div>
+<div class="rowDesc" data-t="balanceDesc">Earn up to 10 coins per completed level.</div>
+</div>
+
+<div class="shopItem">
+<div class="shopItemTop"><div class="shopInfo"><i data-lucide="scan-line"></i><span class="shopName" data-t="preview">Shoot Preview</span></div><span class="shopPrice">50</span></div>
+<div class="shopDesc" data-t="previewDesc">Shows the real predicted path and bounces before shooting.</div>
+<button class="buyBtn" data-buy="preview" data-t="buy">BUY</button>
+</div>
+
+<div class="shopItem">
+<div class="shopItemTop"><div class="shopInfo"><i data-lucide="map-pin"></i><span class="shopName" data-t="landing">Landing Marker</span></div><span class="shopPrice">75</span></div>
+<div class="shopDesc" data-t="landingDesc">Marks where the ball is predicted to stop.</div>
+<button class="buyBtn" data-buy="landing" data-t="buy">BUY</button>
+</div>
+
+<div class="shopItem">
+<div class="shopItemTop"><div class="shopInfo"><i data-lucide="route"></i><span class="shopName" data-t="bounce">Bounce Guide</span></div><span class="shopPrice">100</span></div>
+<div class="shopDesc" data-t="bounceDesc">Highlights predicted wall-contact points.</div>
+<button class="buyBtn" data-buy="bounce" data-t="buy">BUY</button>
+</div>
+
+<div class="row"><div class="rowTop"><span class="rowName" data-t="previewToggle">Shoot Preview</span><div class="toggle" data-ability="preview"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="landingToggle">Landing Marker</span><div class="toggle" data-ability="landing"><i></i></div></div></div>
+<div class="row"><div class="rowTop"><span class="rowName" data-t="bounceToggle">Bounce Guide</span><div class="toggle" data-ability="bounce"><i></i></div></div></div>
+
+</div>
+</div>
+
+
+<div class="tabPane" id="skinsPane">
+  <div class="row">
+    <div class="rowTop"><span class="rowName">Ball Skins</span><span class="rowValue" id="skinCoins">0</span></div>
+    <div class="rowDesc">Buy a look, then equip it. Purchases are saved to your player profile.</div>
+  </div>
+  <div class="skinGrid" id="skinGrid"></div>
+</div>
+<div id="credits">Made by <b>YewsWsi</b></div>
+</div>
+
+<div id="power"><div id="powerFill"></div></div><div id="powerLabel">POWER 0%</div>
+<div id="hint" data-t="hintText">Drag backwards from the ball to shoot</div>
+
+<div id="finish">
+<div id="finishBox">
+<i id="finishIcon" data-lucide="trophy"></i>
+<h1 id="finishTitle">HOLE COMPLETE</h1>
+<p id="finishSub"></p>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const mapCanvas=document.getElementById("mapCanvas");
+const mapCtx=mapCanvas.getContext("2d");
+
+let W=innerWidth,H=innerHeight,DPR=1;
+let course=null,ball=null;
+let strokes=0,level=1,coins=Number(localStorage.getItem("mg_coins")||0);
+let aiming=false,moving=false,finished=false;
+let aimX=0,aimY=0,cameraX=0,cameraY=0;
+let particles=[];
+let aimPreview=[];
+let predictedLanding=null;
+let predictedBounces=[];
+let last=performance.now();
+
+const BALL_R=6.5,MAX_DRAG=170,MAX_SPEED=950;
+
+const state={
+    softCamera:true,
+    holeArrow:true,
+    minimap:true,
+    particles:true,
+    hint:true,
+    autoDifficulty:true,
+    safeObstacles:true,
+    uiScale:100
+};
+
+const abilities={
+    preview:localStorage.getItem("mg_preview")==="1",
+    landing:localStorage.getItem("mg_landing")==="1",
+    bounce:localStorage.getItem("mg_bounce")==="1"
+};
+
+/* =========================
+   PLAYER PROFILE SYSTEM
+   =========================
+   This intentionally uses localStorage because the game is a single HTML file.
+   It is persistence, not secure server authentication.
+*/
+const SKINS={
+  classic:{name:"Classic",price:0,fill:"#eee",stroke:"#aaa",trail:"#aaa"},
+  carbon:{name:"Carbon",price:60,fill:"#252525",stroke:"#777",trail:"#777"},
+  pearl:{name:"Pearl",price:100,fill:"#f5f5f5",stroke:"#fff",trail:"#ddd"},
+  chrome:{name:"Chrome",price:160,fill:"#999",stroke:"#ddd",trail:"#fff"},
+  void:{name:"Void",price:220,fill:"#050505",stroke:"#aaa",trail:"#888"},
+  mono:{name:"Mono+",price:300,fill:"#666",stroke:"#eee",trail:"#ccc"}
+};
+let currentUser=localStorage.getItem("mg_current_user")||"";
+let player=null;
+
+function userKey(u){return "mg_user_"+u.toLowerCase();}
+function loadPlayer(u){
+  const raw=localStorage.getItem(userKey(u));
+  if(!raw)return null;
+  try{return JSON.parse(raw)}catch{return null}
+}
+function savePlayer(){
+  if(!player)return;
+  player.coins=coins;
+  player.level=level;
+  player.abilities={...abilities};
+  player.skin=player.skin||"classic";
+  player.ownedSkins=[...new Set(player.ownedSkins||["classic"])];
+  localStorage.setItem(userKey(player.username),JSON.stringify(player));
+}
+function syncPlayerToGlobals(){
+  if(!player)return;
+  coins=Number(player.coins||0);
+  level=Math.max(1,Number(player.level||1));
+  for(const k of Object.keys(abilities)){
+    abilities[k]=!!player.abilities?.[k];
+    localStorage.setItem("mg_"+k,abilities[k]?"1":"0");
+  }
+}
+function initials(name){return (name||"?").slice(0,2).toUpperCase();}
+function showToast(text){
+  const t=document.getElementById("toast");
+  t.textContent=text;
+  gsap.killTweensOf(t);
+  gsap.fromTo(t,{autoAlpha:0,y:15,scale:.95},{autoAlpha:1,y:0,scale:1,duration:.25,ease:"power2.out"});
+  gsap.to(t,{autoAlpha:0,y:-4,duration:.25,delay:1.4,ease:"power2.in"});
+}
+function animateUIIn(){
+  gsap.from("#hud .hbox",{y:-18,autoAlpha:0,stagger:.06,duration:.55,ease:"power3.out"});
+  gsap.from("#minimap",{x:20,autoAlpha:0,duration:.55,delay:.12,ease:"power3.out"});
+  gsap.from("#hint",{y:12,autoAlpha:0,duration:.45,delay:.25,ease:"power2.out"});
+}
+function updateProfileUI(){
+  if(!player)return;
+  const n=player.username;
+  document.getElementById("profileDot").textContent=initials(n);
+  document.getElementById("profileAvatar").textContent=initials(n);
+  document.getElementById("profileLabel").textContent=n;
+  document.getElementById("profileName").textContent=n;
+  document.getElementById("profileCoins").textContent=coins;
+  document.getElementById("profileLevel").textContent=level;
+  document.getElementById("profileSkins").textContent=(player.ownedSkins||["classic"]).length;
+  document.getElementById("skinCoins").textContent=coins;
+}
+function closeProfile(){
+  gsap.to("#profilePanel",{autoAlpha:0,y:-8,duration:.18,onComplete:()=>document.getElementById("profilePanel").style.display="none"});
+}
+function openProfile(){
+  const p=document.getElementById("profilePanel");
+  p.style.display="block";
+  gsap.fromTo(p,{autoAlpha:0,y:-8},{autoAlpha:1,y:0,duration:.2,ease:"power2.out"});
+}
+function renderSkins(){
+  if(!player)return;
+  const grid=document.getElementById("skinGrid");
+  grid.innerHTML="";
+  const owned=player.ownedSkins||["classic"];
+  for(const [id,s] of Object.entries(SKINS)){
+    const card=document.createElement("div");
+    card.className="skinCard"+(player.skin===id?" active":"");
+    card.innerHTML=`
+      <div class="skinPreview"><div class="skinBall" style="background:${s.fill};border-color:${s.stroke}"></div></div>
+      <div class="skinName">${s.name}</div>
+      <div class="skinPrice">${owned.includes(id)?"OWNED":s.price+" COINS"}</div>
+      <button class="skinAction">${player.skin===id?"EQUIPPED":owned.includes(id)?"EQUIP":("BUY · "+s.price)}</button>`;
+    card.querySelector("button").onclick=(e)=>{
+      e.stopPropagation();
+      if(owned.includes(id)){
+        player.skin=id; savePlayer(); renderSkins(); showToast(s.name+" equipped");
+        gsap.fromTo("#game",{filter:"brightness(1.5)"},{filter:"brightness(1)",duration:.35});
+      }else if(coins>=s.price){
+        coins-=s.price;
+        player.ownedSkins.push(id);
+        player.skin=id;
+        savePlayer(); updateUI(); updateProfileUI(); renderSkins();
+        showToast(s.name+" unlocked");
+        gsap.fromTo(card,{scale:.96},{scale:1,duration:.25,ease:"back.out(2)"});
+      }else{
+        showToast("Not enough coins");
+        gsap.fromTo(card,{x:-5},{x:5,duration:.06,repeat:3,yoyo:true});
+      }
+    };
+    grid.appendChild(card);
+  }
+}
+function finishLogin(){
+  syncPlayerToGlobals();
+  document.getElementById("authOverlay").style.pointerEvents="none";
+  gsap.to("#authOverlay",{autoAlpha:0,duration:.55,ease:"power3.inOut",onComplete:()=>document.getElementById("authOverlay").style.display="none"});
+  updateProfileUI(); renderSkins(); animateUIIn(); updateUI();
+}
+function doAuth(mode){
+  const u=document.getElementById("authUser").value.trim();
+  const p=document.getElementById("authPass").value;
+  const err=document.getElementById("authError");
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(u)){err.textContent="Username: 3–20 letters, numbers or _";return;}
+  if(p.length<4){err.textContent="Password must be at least 4 characters";return;}
+  const existing=loadPlayer(u);
+  if(mode==="signup"){
+    if(existing){err.textContent="That username already exists";return;}
+    player={username:u,password:p,coins:0,level:1,skin:"classic",ownedSkins:["classic"],
+      abilities:{
+skins:"ASPECTOS",preview:false,landing:false,bounce:false}};
+    localStorage.setItem(userKey(u),JSON.stringify(player));
+  }else{
+    if(!existing||existing.password!==p){err.textContent="Wrong username or password";return;}
+    player=existing;
+  }
+  currentUser=u; localStorage.setItem("mg_current_user",u);
+  err.textContent="";
+  generateCourse(true);
+  finishLogin();
+}
+document.querySelectorAll(".authTab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".authTab").forEach(x=>x.classList.remove("active"));
+    tab.classList.add("active");
+    const mode=tab.dataset.auth;
+    document.getElementById("authSubmit").textContent=mode==="login"?"LOGIN":"CREATE ACCOUNT";
+    document.getElementById("authError").textContent="";
+  };
+});
+document.getElementById("authForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const mode=document.querySelector(".authTab.active").dataset.auth;
+  doAuth(mode);
+});
+document.getElementById("profileBtn").onclick=()=> {
+  const p=document.getElementById("profilePanel");
+  p.style.display==="block"?closeProfile():openProfile();
+};
+document.getElementById("closeProfile").onclick=closeProfile;
+document.getElementById("logoutBtn").onclick=()=>{
+  savePlayer(); localStorage.removeItem("mg_current_user"); currentUser=""; player=null;
+  closeProfile();
+  document.getElementById("profileBtn").style.display="none";
+  document.getElementById("authOverlay").style.display="flex";
+  document.getElementById("authOverlay").style.pointerEvents="auto";
+  gsap.fromTo("#authOverlay",{autoAlpha:0},{autoAlpha:1,duration:.35});
+  document.getElementById("authUser").value="";
+  document.getElementById("authPass").value="";
+};
+if(currentUser){
+  player=loadPlayer(currentUser);
+  if(player){syncPlayerToGlobals();}
+  else currentUser="";
+}
+
+
+const settings={
+    size:100,
+    complexity:50,
+    turns:50,
+    obstacles:50,
+    length:100
+};
+
+const dict={
+en:{
+strokes:"Strokes",level:"Level",coins:"Coins",course:"Course",settings:"Settings",
+general:"GENERAL",map:"MAP",shop:"SHOP",skins:"SKINS",language:"Language",camera:"Soft Camera",
+holeArrow:"Hole Direction Arrow",minimap:"Mini Map",particles:"Hole Celebration",
+hint:"Control Hint",uiScale:"UI Scale",mapSize:"Map Size",complexity:"Complexity",
+turns:"Turns",obstacles:"Obstacles",length:"Course Length",difficulty:"Auto Difficulty",
+safe:"Safe Obstacles",balance:"Coin Balance",balanceDesc:"Earn up to 10 coins per completed level.",
+preview:"Shoot Preview",previewDesc:"Shows the real predicted path and bounces before shooting.",
+landing:"Landing Marker",landingDesc:"Marks where the ball is predicted to stop.",
+bounce:"Bounce Guide",bounceDesc:"Highlights predicted wall-contact points.",
+previewToggle:"Shoot Preview",landingToggle:"Landing Marker",bounceToggle:"Bounce Guide",
+buy:"BUY",owned:"OWNED",hintText:"Drag backwards from the ball to shoot"
+},
+de:{
+skins:"SKINS",
+strokes:"Schläge",level:"Level",coins:"Münzen",course:"Kurs",settings:"Einstellungen",
+general:"ALLGEMEIN",map:"KARTE",shop:"SHOP",language:"Sprache",camera:"Weiche Kamera",
+holeArrow:"Loch-Richtungspfeil",minimap:"Minikarte",particles:"Loch-Feier",
+hint:"Steuerungshinweis",uiScale:"UI-Größe",mapSize:"Kartengröße",complexity:"Komplexität",
+turns:"Kurven",obstacles:"Hindernisse",length:"Kurslänge",difficulty:"Auto-Schwierigkeit",
+safe:"Sichere Hindernisse",balance:"Münzstand",balanceDesc:"Bis zu 10 Münzen pro abgeschlossenem Level.",
+preview:"Schussvorschau",previewDesc:"Zeigt den echten vorhergesagten Weg und Abpraller.",
+landing:"Landemarke",landingDesc:"Markiert den vorhergesagten Endpunkt.",
+bounce:"Abprallhilfe",bounceDesc:"Markiert vorhergesagte Wandkontakte.",
+previewToggle:"Schussvorschau",landingToggle:"Landemarke",bounceToggle:"Abprallhilfe",
+buy:"KAUFEN",owned:"GEKAUFT",hintText:"Vom Ball nach hinten ziehen zum Schießen"
+},
+ru:{
+skins:"СКИНЫ",
+strokes:"Удары",level:"Уровень",coins:"Монеты",course:"Трасса",settings:"Настройки",
+general:"ОБЩИЕ",map:"КАРТА",shop:"МАГАЗИН",language:"Язык",camera:"Мягкая камера",
+holeArrow:"Стрелка лунки",minimap:"Мини-карта",particles:"Праздник лунки",
+hint:"Подсказка управления",uiScale:"Масштаб UI",mapSize:"Размер карты",complexity:"Сложность",
+turns:"Повороты",obstacles:"Препятствия",length:"Длина трассы",difficulty:"Автосложность",
+safe:"Безопасные препятствия",balance:"Баланс монет",balanceDesc:"До 10 монет за пройденный уровень.",
+preview:"Прогноз удара",previewDesc:"Показывает реальную траекторию и отскоки.",
+landing:"Метка остановки",landingDesc:"Показывает примерное место остановки мяча.",
+bounce:"Подсказка отскока",bounceDesc:"Показывает предполагаемые точки столкновения со стенами.",
+previewToggle:"Прогноз удара",landingToggle:"Метка остановки",bounceToggle:"Подсказка отскока",
+buy:"КУПИТЬ",owned:"КУПЛЕНО",hintText:"Потяните назад от мяча, чтобы ударить"
+},
+uk:{
+skins:"СКІНИ",
+strokes:"Удари",level:"Рівень",coins:"Монети",course:"Траса",settings:"Налаштування",
+general:"ЗАГАЛЬНІ",map:"КАРТА",shop:"МАГАЗИН",language:"Мова",camera:"М'яка камера",
+holeArrow:"Стрілка лунки",minimap:"Мінімапа",particles:"Свято лунки",
+hint:"Підказка керування",uiScale:"Масштаб UI",mapSize:"Розмір карти",complexity:"Складність",
+turns:"Повороти",obstacles:"Перешкоди",length:"Довжина траси",difficulty:"Автоскладність",
+safe:"Безпечні перешкоди",balance:"Баланс монет",balanceDesc:"До 10 монет за пройдений рівень.",
+preview:"Прогноз удару",previewDesc:"Показує реальну траєкторію та відскоки.",
+landing:"Мітка зупинки",landingDesc:"Показує прогнозоване місце зупинки м'яча.",
+bounce:"Підказка відскоку",bounceDesc:"Показує прогнозовані точки контакту зі стінами.",
+previewToggle:"Прогноз удару",landingToggle:"Мітка зупинки",bounceToggle:"Підказка відскоку",
+buy:"КУПИТИ",owned:"КУПЛЕНО",hintText:"Потягніть назад від м'яча, щоб ударити"
+},
+es:{
+strokes:"Golpes",level:"Nivel",coins:"Monedas",course:"Curso",settings:"Ajustes",
+general:"GENERAL",map:"MAPA",shop:"TIENDA",language:"Idioma",camera:"Cámara suave",
+holeArrow:"Flecha del hoyo",minimap:"Mini mapa",particles:"Celebración",
+hint:"Ayuda de control",uiScale:"Escala UI",mapSize:"Tamaño del mapa",complexity:"Complejidad",
+turns:"Giros",obstacles:"Obstáculos",length:"Longitud",difficulty:"Dificultad automática",
+safe:"Obstáculos seguros",balance:"Saldo",balanceDesc:"Gana hasta 10 monedas por nivel.",
+preview:"Vista previa",previewDesc:"Muestra la trayectoria real y los rebotes.",
+landing:"Marcador final",landingDesc:"Marca dónde se prevé que se detenga la bola.",
+bounce:"Guía de rebote",bounceDesc:"Marca los puntos previstos de contacto.",
+previewToggle:"Vista previa",landingToggle:"Marcador final",bounceToggle:"Guía de rebote",
+buy:"COMPRAR",owned:"COMPRADO",hintText:"Arrastra hacia atrás desde la bola para disparar"
+},
+fr:{
+skins:"SKINS",
+strokes:"Coups",level:"Niveau",coins:"Pièces",course:"Parcours",settings:"Réglages",
+general:"GÉNÉRAL",map:"CARTE",shop:"BOUTIQUE",language:"Langue",camera:"Caméra douce",
+holeArrow:"Flèche du trou",minimap:"Mini-carte",particles:"Célébration",
+hint:"Aide de contrôle",uiScale:"Échelle UI",mapSize:"Taille de carte",complexity:"Complexité",
+turns:"Virages",obstacles:"Obstacles",length:"Longueur",difficulty:"Difficulté auto",
+safe:"Obstacles sûrs",balance:"Solde",balanceDesc:"Jusqu'à 10 pièces par niveau.",
+preview:"Aperçu du tir",previewDesc:"Montre la trajectoire réelle et les rebonds.",
+landing:"Marqueur d'arrivée",landingDesc:"Indique où la balle devrait s'arrêter.",
+bounce:"Guide de rebond",bounceDesc:"Indique les contacts prévus avec les murs.",
+previewToggle:"Aperçu du tir",landingToggle:"Marqueur d'arrivée",bounceToggle:"Guide de rebond",
+buy:"ACHETER",owned:"ACHETÉ",hintText:"Tire en arrière depuis la balle pour frapper"
+},
+pl:{
+skins:"SKINY",
+strokes:"Uderzenia",level:"Poziom",coins:"Monety",course:"Trasa",settings:"Ustawienia",
+general:"OGÓLNE",map:"MAPA",shop:"SKLEP",language:"Język",camera:"Płynna kamera",
+holeArrow:"Strzałka do dołka",minimap:"Mini mapa",particles:"Świętowanie",
+hint:"Podpowiedź sterowania",uiScale:"Skala UI",mapSize:"Rozmiar mapy",complexity:"Złożoność",
+turns:"Zakrety",obstacles:"Przeszkody",length:"Długość trasy",difficulty:"Auto trudność",
+safe:"Bezpieczne przeszkody",balance:"Saldo monet",balanceDesc:"Do 10 monet za ukończony poziom.",
+preview:"Podgląd strzału",previewDesc:"Pokazuje rzeczywistą trajektorię i odbicia.",
+landing:"Znacznik końca",landingDesc:"Pokazuje przewidywane miejsce zatrzymania piłki.",
+bounce:"Przewodnik odbić",bounceDesc:"Pokazuje przewidywane punkty kontaktu ze ścianami.",
+previewToggle:"Podgląd strzału",landingToggle:"Znacznik końca",bounceToggle:"Przewodnik odbić",
+buy:"KUP",owned:"KUPIONO",hintText:"Przeciągnij od piłki do tyłu, aby uderzyć"
+}
+};
+
+let lang=localStorage.getItem("mg_lang")||"en";
+
+function T(k){return (dict[lang]&&dict[lang][k])||dict.en[k]||k}
+
+function applyLanguage(){
+document.querySelectorAll("[data-t]").forEach(el=>{el.textContent=T(el.dataset.t)});
+document.querySelectorAll("[data-buy]").forEach(el=>{el.textContent=abilities[el.dataset.buy]?T("owned"):T("buy")});
+document.getElementById("shopCoins").textContent=coins;
+document.getElementById("mapLabel").textContent=lang==="de"?"KURS":lang==="ru"?"ТРАССА":lang==="uk"?"ТРАСА":lang==="es"?"CURSO":lang==="fr"?"PARCOURS":lang==="pl"?"TRASA":"COURSE";
+}
+
+function saveCoins(){localStorage.setItem("mg_coins",coins); if(player)savePlayer();}
+
+function setToggle(el,on){
+el.classList.toggle("on",!!on);
+}
+
+document.querySelectorAll(".toggle[data-setting]").forEach(el=>{
+el.addEventListener("click",()=>{
+const k=el.dataset.setting;
+state[k]=!state[k];
+setToggle(el,state[k]);
+applyVisualSettings();
+});
+});
+
+document.querySelectorAll(".toggle[data-ability]").forEach(el=>{
+el.addEventListener("click",()=>{
+const k=el.dataset.ability;
+if(!abilities[k])return;
+abilities[k]=!abilities[k];
+localStorage.setItem("mg_"+k,abilities[k]?"1":"0");
+setToggle(el,abilities[k]);
+});
+});
+
+document.getElementById("language").value=lang;
+document.getElementById("language").addEventListener("change",e=>{
+lang=e.target.value;
+localStorage.setItem("mg_lang",lang);
+applyLanguage();
+});
+
+document.getElementById("uiScale").addEventListener("input",e=>{
+state.uiScale=Number(e.target.value);
+document.getElementById("uiScaleValue").textContent=state.uiScale+"%";
+document.getElementById("hud").style.transform=`scale(${state.uiScale/100})`;
+document.getElementById("hud").style.transformOrigin="top left";
+});
+
+for(const [id,out] of [
+["size","sizeOut"],
+["complexity","complexityOut"],
+["turns","turnsOut"],
+["obstacles","obstaclesOut"],
+["length","lengthOut"]
+]){
+document.getElementById(id).addEventListener("input",e=>{
+settings[id]=Number(e.target.value);
+document.getElementById(out).textContent=e.target.value+"%";
+});
+}
+
+document.querySelectorAll(".tab").forEach(tab=>{
+tab.addEventListener("click",()=>{
+document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+document.querySelectorAll(".tabPane").forEach(x=>x.classList.remove("active"));
+tab.classList.add("active");
+const pane=document.getElementById(tab.dataset.tab+"Pane");
+pane.classList.add("active");
+gsap.fromTo(pane,{opacity:0,y:5},{opacity:1,y:0,duration:.2,ease:"power2.out"});
+});
+});
+
+function openSettings(){
+const el=document.getElementById("settings");
+gsap.killTweensOf(el);el.style.display="block";el.style.visibility="visible";
+gsap.fromTo(el,{autoAlpha:0,y:-8},{autoAlpha:1,y:0,duration:.22,ease:"power2.out"});
+}
+function closeSettings(){
+const el=document.getElementById("settings");
+gsap.killTweensOf(el);
+gsap.to(el,{autoAlpha:0,y:-8,duration:.18,ease:"power2.in",onComplete:()=>{el.style.display="none";el.style.visibility="hidden";}});
+}
+document.getElementById("settingsBtn").onclick=e=>{
+e.preventDefault();e.stopPropagation();
+const el=document.getElementById("settings");
+if(el.style.display!=="block" || getComputedStyle(el).visibility==="hidden" || parseFloat(getComputedStyle(el).opacity||"0")<.5) openSettings();
+else closeSettings();
+};
+document.getElementById("closeSettings").onclick=e=>{e.preventDefault();e.stopPropagation();closeSettings();};
+
+document.querySelectorAll("[data-buy]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+const k=btn.dataset.buy;
+const prices={preview:50,landing:75,bounce:100};
+if(abilities[k])return;
+if(coins<prices[k])return;
+coins-=prices[k];
+abilities[k]=true;
+localStorage.setItem("mg_"+k,"1");
+saveCoins();
+setToggle(document.querySelector(`[data-ability="${k}"]`),true);
+btn.textContent=T("owned");
+btn.disabled=true;
+updateUI();
+});
+});
+
+function applyVisualSettings(){
+document.getElementById("minimap").style.display=state.minimap?"block":"none";
+document.getElementById("hint").style.display=state.hint?"block":"none";
+}
+
+function rand(a,b){return Math.random()*(b-a)+a}
+function randInt(a,b){return Math.floor(rand(a,b+1))}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+
+function resize(){
+W=innerWidth;H=innerHeight;
+DPR=Math.min(devicePixelRatio||1,2);
+canvas.width=W*DPR;canvas.height=H*DPR;
+canvas.style.width=W+"px";canvas.style.height=H+"px";
+ctx.setTransform(DPR,0,0,DPR,0,0);
+mapCanvas.width=mapCanvas.clientWidth*DPR;
+mapCanvas.height=mapCanvas.clientHeight*DPR;
+mapCtx.setTransform(DPR,0,0,DPR,0,0);
+if(!course)generateCourse(true);
+}
+window.addEventListener("resize",resize);
+
+const SHAPES=["L","ZIGZAG","F","T","U","SNAKE","CROSS","STAIRS","PLUS","C","SPIRAL","DIAMOND","WAVE","S","HOOK"];
+
+function makeShape(type){
+const c=[],a=(x,y)=>c.push({x,y});
+if(type==="L"){for(let x=0;x<6;x++)a(x,0);for(let y=1;y<6;y++)a(0,y)}
+else if(type==="ZIGZAG"){for(let x=0;x<6;x++)a(x,0);for(let x=0;x<6;x++)a(5-x,1);for(let x=0;x<6;x++)a(x,2);for(let x=0;x<6;x++)a(5-x,3)}
+else if(type==="F"){for(let y=0;y<7;y++)a(0,y);for(let x=1;x<6;x++)a(x,0);for(let x=1;x<5;x++)a(x,3)}
+else if(type==="T"){for(let x=0;x<7;x++)a(x,0);for(let y=1;y<7;y++)a(3,y)}
+else if(type==="U"){for(let y=0;y<6;y++)a(0,y);for(let y=0;y<6;y++)a(5,y);for(let x=1;x<5;x++)a(x,5)}
+else if(type==="SNAKE"){for(let x=0;x<7;x++)a(x,0);for(let y=1;y<3;y++)a(6,y);for(let x=5;x>=0;x--)a(x,2);for(let y=3;y<5;y++)a(0,y);for(let x=1;x<7;x++)a(x,4);for(let y=5;y<7;y++)a(6,y);for(let x=5;x>=0;x--)a(x,6)}
+else if(type==="CROSS"){for(let x=0;x<7;x++)a(x,3);for(let y=0;y<7;y++)a(3,y)}
+else if(type==="STAIRS"){for(let y=0;y<6;y++)for(let x=0;x<=y;x++)a(x,y)}
+else if(type==="PLUS"){for(let x=0;x<7;x++)a(x,3);for(let y=0;y<7;y++)a(3,y);a(2,2);a(4,2);a(2,4);a(4,4)}
+else if(type==="C"){for(let x=0;x<7;x++)a(x,0);for(let y=1;y<6;y++)a(0,y);for(let x=0;x<7;x++)a(x,6)}
+else if(type==="SPIRAL"){for(let x=0;x<7;x++)a(x,0);for(let y=1;y<7;y++)a(6,y);for(let x=5;x>=1;x--)a(x,6);for(let y=5;y>=2;y--)a(1,y);for(let x=2;x<=5;x++)a(x,2);for(let y=3;y<=5;y++)a(5,y);for(let x=4;x>=3;x--)a(x,5)}
+else if(type==="DIAMOND"){a(3,0);for(let x=1;x<=5;x++)a(x,1);for(let x=0;x<=6;x++)a(x,2);for(let x=1;x<=5;x++)a(x,3);a(3,4)}
+else if(type==="WAVE"){for(let x=0;x<6;x++)a(x,0);a(5,1);a(5,2);for(let x=4;x>=0;x--)a(x,2);a(0,3);a(0,4);for(let x=1;x<7;x++)a(x,4);a(6,5);a(6,6);for(let x=5;x>=1;x--)a(x,6)}
+else if(type==="S"){for(let x=0;x<6;x++)a(x,0);for(let y=1;y<3;y++)a(5,y);for(let x=4;x>=0;x--)a(x,2);for(let y=3;y<5;y++)a(0,y);for(let x=1;x<6;x++)a(x,4)}
+else if(type==="HOOK"){for(let y=0;y<7;y++)a(0,y);for(let x=1;x<5;x++)a(x,6);for(let y=5;y>=2;y--)a(4,y)}
+return c;
+}
+
+function generateCourse(reset=true){
+const p=state.autoDifficulty?Math.min(level-1,50):0;
+const diff=p/50;
+const ec=clamp(settings.complexity+diff*75,1,200);
+const et=clamp(settings.turns+diff*60,1,200);
+const eo=clamp(settings.obstacles+diff*55,1,200);
+const el=clamp(settings.length+diff*55,1,200);
+
+let type;
+if(ec<35)type=["L","T","C","U"][randInt(0,3)];
+else if(ec<75)type=["L","ZIGZAG","F","T","U","C","S"][randInt(0,6)];
+else type=SHAPES[randInt(0,SHAPES.length-1)];
+
+let cells=makeShape(type);
+const target=Math.min(150,Math.max(4,Math.round(cells.length*(.5+el/100))));
+let safe=0;
+
+while(cells.length<target&&safe++<2500){
+let base=cells[randInt(0,cells.length-1)];
+let ns=[
+{x:base.x+1,y:base.y},
+{x:base.x-1,y:base.y},
+{x:base.x,y:base.y+1},
+{x:base.x,y:base.y-1}
+];
+let n=ns[randInt(0,3)];
+if(!cells.some(q=>q.x===n.x&&q.y===n.y))cells.push(n);
+}
+
+const minX=Math.min(...cells.map(c=>c.x));
+const maxX=Math.max(...cells.map(c=>c.x));
+const minY=Math.min(...cells.map(c=>c.y));
+const maxY=Math.max(...cells.map(c=>c.y));
+
+const gw=maxX-minX+1,gh=maxY-minY+1;
+let cs=Math.min(W*.72/gw,H*.62/gh,105);
+cs*=.55+(settings.size/100)*.7;
+cs=clamp(cs,35,140);
+
+const tw=gw*cs,th=gh*cs;
+const sx=-tw/2,sy=-th/2;
+const rects=cells.map(c=>({
+gx:c.x,gy:c.y,
+x:sx+(c.x-minX)*cs,
+y:sy+(c.y-minY)*cs,
+w:cs,h:cs
+}));
+
+const map=new Set(cells.map(c=>`${c.x},${c.y}`));
+const has=(x,y)=>map.has(`${x},${y}`);
+const walls=[];
+
+for(const r of rects){
+if(!has(r.gx,r.gy-1))walls.push({x:r.x,y:r.y,w:r.w,h:8});
+if(!has(r.gx,r.gy+1))walls.push({x:r.x,y:r.y+r.h-8,w:r.w,h:8});
+if(!has(r.gx-1,r.gy))walls.push({x:r.x,y:r.y,w:8,h:r.h});
+if(!has(r.gx+1,r.gy))walls.push({x:r.x+r.w-8,y:r.y,w:8,h:r.h});
+}
+
+let startCell=rects[0],holeCell=rects[rects.length-1],far=0;
+
+for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+let d=dist(rects[i],rects[j]);
+if(d>far){far=d;startCell=rects[i];holeCell=rects[j]}
+}
+
+let farCandidates=rects.filter(r=>dist(r,startCell)>far*clamp(.70+diff*.24,.70,.94));
+if(farCandidates.length)holeCell=farCandidates[randInt(0,farCandidates.length-1)];
+
+const start={
+x:startCell.x+startCell.w/2,
+y:startCell.y+startCell.h/2
+};
+
+const hole={
+x:holeCell.x+holeCell.w/2,
+y:holeCell.y+holeCell.h/2,
+r:8
+};
+
+const obstacles=[];
+const amount=Math.round(eo/200*Math.min(rects.length,32));
+const usable=rects.filter(r=>r!==startCell&&r!==holeCell&&r.w>=58&&r.h>=58);
+
+function obstacleSafe(o){
+const cx=o.type==="circle"?o.x:o.x+o.w/2;
+const cy=o.type==="circle"?o.y:o.y+o.h/2;
+const rr=o.type==="circle"?o.r:Math.max(o.w,o.h)/2;
+if(dist({x:cx,y:cy},start)<rr+55)return false;
+if(dist({x:cx,y:cy},hole)<rr+55)return false;
+for(const q of obstacles){
+const qx=q.type==="circle"?q.x:q.x+q.w/2;
+const qy=q.type==="circle"?q.y:q.y+q.h/2;
+const qr=q.type==="circle"?q.r:Math.max(q.w,q.h)/2;
+if(dist({x:cx,y:cy},{x:qx,y:qy})<rr+qr+20)return false;
+}
+return true;
+}
+
+if(state.safeObstacles){
+for(let i=0;i<amount;i++){
+let placed=false;
+for(let a=0;a<40&&!placed;a++){
+if(!usable.length)break;
+let r=usable[randInt(0,usable.length-1)];
+let s=clamp(r.w*rand(.10,.20),8,22);
+let positions=[
+{x:r.x+s+8,y:r.y+s+8},
+{x:r.x+r.w-s-8,y:r.y+s+8},
+{x:r.x+s+8,y:r.y+r.h-s-8},
+{x:r.x+r.w-s-8,y:r.y+r.h-s-8}
+];
+let pos=positions[randInt(0,3)];
+let o=Math.random()<.55?{type:"circle",x:pos.x,y:pos.y,r:s*.62}:{type:"rect",x:pos.x-s/2,y:pos.y-s/2,w:s,h:s};
+if(dist({x:pos.x,y:pos.y},{x:r.x+r.w/2,y:r.y+r.h/2})<r.w*.18)continue;
+if(!obstacleSafe(o))continue;
+obstacles.push(o);placed=true;
+}
+}
+}
+
+course={type,rects,walls,obstacles,start,hole};
+
+if(reset){
+ball={x:start.x,y:start.y,vx:0,vy:0,r:BALL_R};
+strokes=0;
+aiming=false;
+moving=false;
+finished=false;
+cameraX=0;
+cameraY=0;
+particles=[];
+}
+
+updateUI();
+}
+
+function updateUI(){
+document.getElementById("strokesValue").textContent=strokes;
+document.getElementById("levelValue").textContent=level;
+document.getElementById("coinsValue").textContent=coins;
+document.getElementById("shopCoins").textContent=coins;
+document.getElementById("courseValue").textContent=course?.type||"—";
+if(player){
+  document.getElementById("profileCoins").textContent=coins;
+  document.getElementById("profileLevel").textContent=level;
+  document.getElementById("skinCoins").textContent=coins;
+}
+}
+
+function rectCollision(b,r){
+let cx=clamp(b.x,r.x,r.x+r.w),cy=clamp(b.y,r.y,r.y+r.h);
+let dx=b.x-cx,dy=b.y-cy,sq=dx*dx+dy*dy;
+if(sq>=b.r*b.r)return;
+let nx=0,ny=0,pen=0;
+if(sq<.0001){
+let l=Math.abs(b.x-r.x),rr=Math.abs(r.x+r.w-b.x),t=Math.abs(b.y-r.y),bb=Math.abs(r.y+r.h-b.y),m=Math.min(l,rr,t,bb);
+if(m===l){nx=-1;pen=b.r+l}
+else if(m===rr){nx=1;pen=b.r+rr}
+else if(m===t){ny=-1;pen=b.r+t}
+else{ny=1;pen=b.r+bb}
+}else{
+let len=Math.sqrt(sq);
+nx=dx/len;ny=dy/len;pen=b.r-len;
+}
+b.x+=nx*pen;b.y+=ny*pen;
+let dot=b.vx*nx+b.vy*ny;
+if(dot<0){
+b.vx-=2*dot*nx;b.vy-=2*dot*ny;
+b.vx*=.78;b.vy*=.78;
+}
+}
+
+function circleCollision(b,o){
+let dx=b.x-o.x,dy=b.y-o.y,len=Math.hypot(dx,dy),min=b.r+o.r;
+if(len>=min)return;
+let nx=dx/(len||1),ny=dy/(len||1);
+b.x+=nx*(min-len);b.y+=ny*(min-len);
+let dot=b.vx*nx+b.vy*ny;
+if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny;b.vx*=.82;b.vy*=.82}
+}
+
+function collide(){
+for(const w of course.walls)rectCollision(ball,w);
+for(const o of course.obstacles)o.type==="circle"?circleCollision(ball,o):rectCollision(ball,o);
+}
+
+function simulateShot(vx,vy){
+let b={x:ball.x,y:ball.y,vx,vy,r:BALL_R};
+let points=[{x:b.x,y:b.y}];
+let bounces=[];
+let dt=1/120;
+let stopped=false;
+
+for(let i=0;i<1800;i++){
+b.x+=b.vx*dt;b.y+=b.vy*dt;
+let beforeX=b.vx,beforeY=b.vy;
+let contact=false;
+
+for(const w of course.walls){
+let ox=b.x,oy=b.y;
+rectCollision(b,w);
+if(Math.abs(b.vx-beforeX)>1||Math.abs(b.vy-beforeY)>1){
+bounces.push({x:b.x,y:b.y});
+contact=true;
+beforeX=b.vx;beforeY=b.vy;
+}
+if(contact){beforeX=b.vx;beforeY=b.vy}
+}
+
+for(const o of course.obstacles){
+let ox=b.vx,oy=b.vy;
+if(o.type==="circle")circleCollision(b,o);else rectCollision(b,o);
+if(Math.abs(b.vx-ox)>1||Math.abs(b.vy-oy)>1){
+bounces.push({x:b.x,y:b.y});
+}
+}
+
+if(i%3===0)points.push({x:b.x,y:b.y});
+
+let sp=Math.hypot(b.vx,b.vy);
+let fr=sp<100?.965:.987;
+b.vx*=Math.pow(fr,dt*60);
+b.vy*=Math.pow(fr,dt*60);
+
+if(dist(b,course.hole)<course.hole.r*.9&&sp<280){
+points.push({x:course.hole.x,y:course.hole.y});
+stopped=true;
+break;
+}
+
+if(sp<9){
+stopped=true;
+break;
+}
+}
+
+return{
+points,
+bounces,
+landing:points[points.length-1],
+stopped
+};
+}
+
+function updateAimPreview(){
+aimPreview=[];
+predictedLanding=null;
+predictedBounces=[];
+
+if(!abilities.preview&&!abilities.landing&&!abilities.bounce)return;
+if(!aiming||moving||finished)return;
+
+let dx=ball.x-aimX,dy=ball.y-aimY,len=Math.hypot(dx,dy);
+if(len<2)return;
+
+let power=clamp(len/MAX_DRAG,0,1);
+let vx=dx/len*MAX_SPEED*power;
+let vy=dy/len*MAX_SPEED*power;
+let sim=simulateShot(vx,vy);
+
+aimPreview=sim.points;
+predictedLanding=sim.landing;
+predictedBounces=sim.bounces;
+}
+
+function updateCamera(){
+if(!state.softCamera)return;
+let sx=W/2-cameraX+ball.x;
+let sy=H/2-cameraY+ball.y;
+let mx=W*.22,my=H*.20;
+let tx=cameraX,ty=cameraY;
+if(sx<mx)tx=ball.x+W/2-mx;
+else if(sx>W-mx)tx=ball.x+W/2-(W-mx);
+if(sy<my)ty=ball.y+H/2-my;
+else if(sy>H-my)ty=ball.y+H/2-(H-my);
+if(moving){
+tx+=ball.vx*.04;
+ty+=ball.vy*.04;
+}
+cameraX+=(tx-cameraX)*.055;
+cameraY+=(ty-cameraY)*.055;
+}
+
+function drawAimLine(){
+if(!aiming||moving||finished)return;
+let dx=ball.x-aimX,dy=ball.y-aimY,len=Math.hypot(dx,dy);
+if(len<2)return;
+let nx=dx/len,ny=dy/len,ll=Math.min(len,MAX_DRAG);
+ctx.save();ctx.lineCap="round";
+for(let i=0;i<28;i++){
+let a=i/28,b=(i+1)/28;
+let x1=ball.x+nx*ll*a,y1=ball.y+ny*ll*a;
+let x2=ball.x+nx*ll*b,y2=ball.y+ny*ll*b;
+ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+ctx.strokeStyle=`rgba(238,238,238,${.95-.55*a})`;
+ctx.lineWidth=Math.max(1,6-5*a);ctx.stroke();
+}
+ctx.restore();
+}
+
+function drawPrediction(){
+updateAimPreview();
+if(!aimPreview.length)return;
+
+if(abilities.preview){
+ctx.save();
+ctx.lineCap="round";
+ctx.lineWidth=1.5;
+ctx.setLineDash([5,5]);
+ctx.beginPath();
+for(let i=0;i<aimPreview.length;i++){
+let p=aimPreview[i];
+if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+}
+ctx.strokeStyle="#aaa";
+ctx.stroke();
+ctx.restore();
+}
+
+if(abilities.bounce){
+ctx.save();
+ctx.fillStyle="#aaa";
+for(const p of predictedBounces){
+ctx.beginPath();
+ctx.arc(p.x,p.y,3,0,Math.PI*2);
+ctx.fill();
+}
+ctx.restore();
+}
+
+if(abilities.landing&&predictedLanding){
+ctx.save();
+ctx.strokeStyle="#aaa";
+ctx.lineWidth=1.5;
+ctx.setLineDash([3,3]);
+ctx.beginPath();
+ctx.arc(predictedLanding.x,predictedLanding.y,8,0,Math.PI*2);
+ctx.stroke();
+ctx.setLineDash([]);
+ctx.beginPath();
+ctx.moveTo(predictedLanding.x-5,predictedLanding.y);
+ctx.lineTo(predictedLanding.x+5,predictedLanding.y);
+ctx.moveTo(predictedLanding.x,predictedLanding.y-5);
+ctx.lineTo(predictedLanding.x,predictedLanding.y+5);
+ctx.stroke();
+ctx.restore();
+}
+
+aimPreview=[];
+}
+
+function updateHoleArrow(){
+const el=document.getElementById("holeIndicator");
+if(!state.holeArrow)return;
+const hx=W/2-cameraX+course.hole.x;
+const hy=H/2-cameraY+course.hole.y;
+const inside=hx>20&&hx<W-20&&hy>20&&hy<H-20;
+if(inside)return;
+
+const dx=hx-W/2,dy=hy-H/2;
+const angle=Math.atan2(dy,dx);
+const px=Math.cos(angle),py=Math.sin(angle);
+const m=38;
+const x=clamp(W/2+px*(Math.min(W,H)/2-m),m,W-m);
+const y=clamp(H/2+py*(Math.min(W,H)/2-m),m,H-m);
+
+ctx.save();
+ctx.translate(x,y);
+ctx.rotate(angle);
+ctx.fillStyle="#bbb";
+ctx.font="bold 25px Arial";
+ctx.textAlign="center";
+ctx.textBaseline="middle";
+ctx.fillText("»",0,0);
+ctx.restore();
+}
+
+function createCelebration(){
+if(!state.particles)return;
+particles=[];
+let cx=W/2-cameraX+(course.hole.x-ball.x);
+let cy=H/2-cameraY+(course.hole.y-ball.y);
+for(let i=0;i<80;i++){
+let a=Math.random()*Math.PI*2,s=rand(90,430);
+particles.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-rand(50,180),size:rand(2,5),life:rand(.7,1.35),maxLife:1.35,c:"p",r:0,sp:0});
+}
+for(const side of [-1,1])for(let i=0;i<18;i++){
+particles.push({x:cx+side*15,y:cy,vx:side*rand(180,420)+rand(-80,80),vy:rand(-350,-100),size:rand(2,5),life:rand(.7,1.3),maxLife:1.3,c:"c",r:rand(0,6),sp:rand(-8,8)});
+}
+}
+
+function updateParticles(dt){
+for(const p of particles){
+p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=620*dt;
+if(p.c==="c")p.r+=p.sp*dt;
+}
+particles=particles.filter(p=>p.life>0);
+}
+
+function drawParticles(){
+for(const p of particles){
+let a=clamp(p.life/p.maxLife,0,1);
+ctx.save();ctx.globalAlpha=a;ctx.fillStyle="#ddd";
+if(p.c==="c"){ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillRect(-p.size,-p.size/2,p.size*2.2,p.size)}
+else{ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill()}
+ctx.restore();
+}
+}
+
+function drawCourse(){
+ctx.clearRect(0,0,W,H);
+ctx.fillStyle="#101010";ctx.fillRect(0,0,W,H);
+ctx.save();ctx.translate(W/2-cameraX,H/2-cameraY);
+
+for(const r of course.rects){
+ctx.fillStyle="#292929";ctx.fillRect(r.x,r.y,r.w,r.h);
+ctx.strokeStyle="#303030";ctx.lineWidth=1;
+for(let x=r.x+20;x<r.x+r.w;x+=24){ctx.beginPath();ctx.moveTo(x,r.y);ctx.lineTo(x,r.y+r.h);ctx.stroke()}
+for(let y=r.y+20;y<r.y+r.h;y+=24){ctx.beginPath();ctx.moveTo(r.x,y);ctx.lineTo(r.x+r.w,y);ctx.stroke()}
+}
+
+for(const w of course.walls){
+ctx.fillStyle="#666";ctx.fillRect(w.x,w.y,w.w,w.h);
+ctx.strokeStyle="#888";ctx.strokeRect(w.x,w.y,w.w,w.h);
+}
+
+for(const o of course.obstacles){
+if(o.type==="circle"){
+ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fillStyle="#151515";ctx.fill();ctx.strokeStyle="#777";ctx.stroke();
+}else{
+ctx.fillStyle="#151515";ctx.fillRect(o.x,o.y,o.w,o.h);ctx.strokeStyle="#777";ctx.strokeRect(o.x,o.y,o.w,o.h);
+}
+}
+
+ctx.beginPath();ctx.arc(course.hole.x,course.hole.y,course.hole.r,0,Math.PI*2);
+ctx.fillStyle="#050505";ctx.fill();ctx.strokeStyle="#555";ctx.lineWidth=1;ctx.stroke();
+
+ctx.strokeStyle="#777";ctx.lineWidth=1.3;
+ctx.beginPath();ctx.moveTo(course.hole.x,course.hole.y);ctx.lineTo(course.hole.x,course.hole.y-20);ctx.stroke();
+ctx.beginPath();ctx.moveTo(course.hole.x,course.hole.y-20);ctx.lineTo(course.hole.x+10,course.hole.y-17);ctx.lineTo(course.hole.x,course.hole.y-13);ctx.closePath();ctx.fillStyle="#777";ctx.fill();
+
+drawPrediction();
+drawAimLine();
+
+ctx.beginPath();ctx.ellipse(ball.x+3,ball.y+4,ball.r,ball.r*.55,0,0,Math.PI*2);ctx.fillStyle="#0008";ctx.fill();
+const activeSkin=SKINS[player?.skin||"classic"]||SKINS.classic;
+    ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fillStyle=activeSkin.fill;ctx.fill();
+    ctx.strokeStyle=activeSkin.stroke;ctx.stroke();
+
+/* Trail is drawn in the SAME world-space transform as the ball. */
+if(!window.ballTrail)window.ballTrail=[];
+if(moving){
+  const lastP=window.ballTrail[window.ballTrail.length-1];
+  if(!lastP || Math.hypot(ball.x-lastP.x,ball.y-lastP.y)>1.2){
+    window.ballTrail.push({x:ball.x,y:ball.y});
+    if(window.ballTrail.length>22)window.ballTrail.shift();
+  }
+}else window.ballTrail.length=0;
+const activeTrailSkin=SKINS[player?.skin||"classic"]||SKINS.classic;
+ctx.save();ctx.lineCap="round";
+for(let i=0;i<window.ballTrail.length;i++){
+  const p=window.ballTrail[i],t=(i+1)/window.ballTrail.length;
+  ctx.globalAlpha=.025+.18*t;ctx.fillStyle=activeTrailSkin.trail;
+  ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1.1,ball.r*(.2+.8*t)),0,Math.PI*2);ctx.fill();
+}
+/* newest point is forced to the exact live ball center */
+if(moving){ctx.globalAlpha=.16;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r*1.3,0,Math.PI*2);ctx.fill();}
+ctx.restore();
+
+ctx.restore();
+
+drawParticles();
+updateHoleArrow();
+drawMiniMap();
+}
+
+function drawMiniMap(){
+if(!state.minimap||!course)return;
+let mw=mapCanvas.clientWidth,mh=mapCanvas.clientHeight;
+mapCtx.clearRect(0,0,mw,mh);
+let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+for(const r of course.rects){
+minX=Math.min(minX,r.x);minY=Math.min(minY,r.y);
+maxX=Math.max(maxX,r.x+r.w);maxY=Math.max(maxY,r.y+r.h);
+}
+let pad=7;
+let scale=Math.min((mw-pad*2)/(maxX-minX),(mh-pad*2)/(maxY-minY));
+let ox=(mw-(maxX-minX)*scale)/2;
+let oy=(mh-(maxY-minY)*scale)/2;
+for(const r of course.rects){
+mapCtx.fillStyle="#343434";
+mapCtx.fillRect(ox+(r.x-minX)*scale,oy+(r.y-minY)*scale,r.w*scale,r.h*scale);
+}
+mapCtx.strokeStyle="#777";mapCtx.lineWidth=1;
+for(const w of course.walls)mapCtx.strokeRect(ox+(w.x-minX)*scale,oy+(w.y-minY)*scale,w.w*scale,w.h*scale);
+mapCtx.fillStyle="#111";
+for(const o of course.obstacles){
+let x=o.type==="circle"?o.x:o.x+o.w/2;
+let y=o.type==="circle"?o.y:o.y+o.h/2;
+let rr=o.type==="circle"?o.r:Math.max(o.w,o.h)/2;
+mapCtx.beginPath();mapCtx.arc(ox+(x-minX)*scale,oy+(y-minY)*scale,Math.max(1.4,rr*scale),0,Math.PI*2);mapCtx.fill();
+}
+mapCtx.beginPath();mapCtx.arc(ox+(course.hole.x-minX)*scale,oy+(course.hole.y-minY)*scale,3,0,Math.PI*2);mapCtx.fillStyle="#eee";mapCtx.fill();
+mapCtx.beginPath();mapCtx.arc(ox+(ball.x-minX)*scale,oy+(ball.y-minY)*scale,3,0,Math.PI*2);mapCtx.fillStyle="#aaa";mapCtx.fill();
+let vw=W/scale,vh=H/scale;
+mapCtx.strokeStyle="#8888";
+mapCtx.strokeRect(ox+(cameraX+W/2-vw/2-minX)*scale,oy+(cameraY+H/2-vh/2-minY)*scale,vw*scale,vh*scale);
+}
+
+function getWorldPointer(e){
+const r=canvas.getBoundingClientRect();
+return{x:e.clientX-r.left-W/2+cameraX,y:e.clientY-r.top-H/2+cameraY}
+}
+
+canvas.addEventListener("pointerdown",e=>{
+if(!player||moving||finished)return;
+const p=getWorldPointer(e);
+if(dist(p,ball)<32){
+aiming=true;aimX=p.x;aimY=p.y;
+document.getElementById("power").style.opacity="1";
+canvas.setPointerCapture(e.pointerId);
+}
+});
+
+canvas.addEventListener("pointermove",e=>{
+if(!aiming)return;
+const p=getWorldPointer(e);
+aimX=p.x;aimY=p.y;
+const pw=clamp(dist(ball,{x:aimX,y:aimY})/MAX_DRAG,0,1);
+document.getElementById("powerFill").style.width=pw*100+"%";document.getElementById("powerLabel").textContent="POWER "+Math.round(pw*100)+"%";document.getElementById("powerLabel").style.opacity="1";
+});
+
+canvas.addEventListener("pointerup",e=>{
+if(!aiming)return;
+aiming=false;
+document.getElementById("power").style.opacity="0";document.getElementById("powerLabel").style.opacity="0";
+const dx=ball.x-aimX,dy=ball.y-aimY,len=Math.hypot(dx,dy);
+if(len<8)return;
+const power=clamp(len/MAX_DRAG,0,1);
+ball.vx=dx/len*MAX_SPEED*power;
+ball.vy=dy/len*MAX_SPEED*power;
+strokes++;
+moving=true;
+updateUI();
+gsap.killTweensOf("#power");
+gsap.fromTo("#powerFill",{scaleX:.2},{scaleX:1,duration:.18,ease:"power2.out",transformOrigin:"left center"});
+gsap.fromTo("#hud .statValue",{scale:1.22},{scale:1,duration:.28,ease:"back.out(2)"});
+
+});
+
+function physics(dt){
+if(!moving)return;
+const steps=6,step=dt/steps;
+for(let i=0;i<steps;i++){
+ball.x+=ball.vx*step;
+ball.y+=ball.vy*step;
+collide();
+let sp=Math.hypot(ball.vx,ball.vy);
+if(dist(ball,course.hole)<course.hole.r*.9&&sp<280){finishHole();return}
+}
+let sp=Math.hypot(ball.vx,ball.vy);
+let fr=sp<100?.965:.987;
+ball.vx*=Math.pow(fr,dt*60);
+ball.vy*=Math.pow(fr,dt*60);
+if(Math.hypot(ball.vx,ball.vy)<9){ball.vx=0;ball.vy=0;moving=false}
+}
+
+function finishHole(){
+if(finished)return;
+finished=true;
+moving=false;
+ball.vx=0;ball.vy=0;
+ball.x=course.hole.x;ball.y=course.hole.y;
+let reward=Math.min(10,Math.max(1,Math.round(10-Math.max(0,strokes-2)*.8)));
+coins+=reward;
+saveCoins();
+updateUI();
+if(state.particles)createCelebration();
+document.getElementById("finishTitle").textContent=strokes===1?"HOLE IN ONE!":"HOLE COMPLETE";
+document.getElementById("finishSub").textContent=`Level ${level} · ${strokes} · +${reward} ${T("coins").toLowerCase()}`;
+document.getElementById("finish").style.display="flex";
+gsap.fromTo("#finishBox",{scale:.75,autoAlpha:0,y:12},{scale:1,autoAlpha:1,y:0,duration:.5,ease:"back.out(1.8)"});
+gsap.fromTo("#finishIcon",{rotation:-30,scale:.5},{rotation:0,scale:1,duration:.55,delay:.08,ease:"back.out(2)"});
+if(player){player.level=level+1;player.coins=coins;savePlayer();updateProfileUI();}
+
+setTimeout(()=>{
+document.getElementById("finish").style.display="none";
+level++;
+if(player){player.level=level;savePlayer();updateProfileUI();}
+generateCourse(true);
+},1700);
+}
+
+document.getElementById("reset").onclick=e=>{
+e.preventDefault();e.stopPropagation();
+ball={x:course.start.x,y:course.start.y,vx:0,vy:0,r:BALL_R};
+strokes=0;aiming=false;moving=false;finished=false;cameraX=0;cameraY=0;particles=[];if(window.ballTrail)window.ballTrail.length=0;updateUI();
+};
+
+document.getElementById("newCourse").onclick=e=>{
+e.preventDefault();e.stopPropagation();
+level=1;if(player){player.level=1;savePlayer();}generateCourse(true);updateUI();updateProfileUI();
+};
+
+lucide.createIcons();
+if(player){
+  document.getElementById("authOverlay").style.display="none";
+  document.getElementById("authOverlay").style.opacity="0";
+}else{
+  document.getElementById("profileBtn").style.display="none";
+}
+resize();
+applyVisualSettings();
+applyLanguage();
+if(player){document.getElementById("profileBtn").style.display="flex";updateProfileUI();renderSkins();}
+for(const k of Object.keys(state)){
+const el=document.querySelector(`[data-setting="${k}"]`);
+if(el)setToggle(el,state[k]);
+}
+for(const k of Object.keys(abilities)){
+const el=document.querySelector(`[data-ability="${k}"]`);
+if(el)setToggle(el,abilities[k]);
+}
+for(const btn of document.querySelectorAll("[data-buy]")){
+const k=btn.dataset.buy;
+if(abilities[k]){btn.textContent=T("owned");btn.disabled=true}
+}
+
+/* F = focus mode, R = quick restart */
+let focusMode=false;
+function toggleFocus(){
+ focusMode=!focusMode;
+ ["#hud","#minimap","#hint","#profileBtn"].forEach(sel=>{const el=document.querySelector(sel);if(el)gsap.to(el,{autoAlpha:focusMode?0:1,duration:.22});});
+ if(focusMode)closeSettings();
+ showToast(focusMode?"Focus mode":"UI restored");
+}
+window.addEventListener("keydown",e=>{
+ if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName))return;
+ if(e.key.toLowerCase()==="f")toggleFocus();
+ if(e.key.toLowerCase()==="r"&&player)document.getElementById("reset").click();
+});
+
+requestAnimationFrame(loop);
+
+function loop(t){
+const dt=Math.min((t-last)/1000,.033);
+last=t;
+physics(dt);
+updateCamera();
+updateParticles(dt);
+drawCourse();
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
